@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🌍 Redirecting to GeoGuessr...</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+    }
+    .container {
+      text-align: center;
+      padding: 48px;
+    }
+    .globe { font-size: 5rem; animation: spin 3s linear infinite; display: inline-block; }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    h1 { margin-top: 16px; font-size: 1.5rem; }
+    p { color: #aaa; margin-top: 8px; }
+    .fun-facts {
+      margin-top: 24px;
+      font-size: 0.9rem;
+      color: #7dd3fc;
+      max-width: 400px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+  </style>
+  <script>
+    const funFacts = [
+      "🗺️ The longest place name is 85 characters long (in New Zealand!)",
+      "🌏 Russia spans 11 time zones",
+      "🏝️ There are more than 100,000 islands in Sweden",
+      "🇧🇷 Brazil borders every South American country except Chile and Ecuador",
+      "🦘 Australia is wider than the Moon",
+      "🏔️ There's a town in Norway called Hell — it freezes over every winter",
+      "🇨🇦 Canada has more lakes than the rest of the world combined",
+    ];
+
+    async function redirect() {
+      try {
+        const cacheBust = '?t=' + Date.now();
+        const res = await fetch('redirect.json' + cacheBust);
+        const data = await res.json();
+        if (data.url) {
+          document.getElementById('fact').textContent = funFacts[Math.floor(Math.random() * funFacts.length)];
+          setTimeout(() => { window.location.href = data.url; }, 1500);
+        }
+      } catch (e) {
+        document.getElementById('fact').textContent = "⚠️ Couldn't load redirect. Ask Caleb!";
+      }
+    }
+    redirect();
+  </script>
+</head>
+<body>
+  <div class="container">
+    <div class="globe">🌍</div>
+    <h1>Taking you to GeoGuessr...</h1>
+    <p>Hold tight, explorer!</p>
+    <div class="fun-facts" id="fact">Loading your adventure...</div>
+  </div>
+</body>
+</html>

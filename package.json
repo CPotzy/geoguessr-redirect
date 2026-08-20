@@ -1,18 +1,6 @@
 {
   "name": "geoguessr-redirect",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "start": "node server.js"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
-  "dependencies": {
-    "better-sqlite3": "^13.0.3",
-    "express": "^5.2.1",
-    "qrcode": "^1.5.4"
-  }
+  "description": "Permanent QR code that redirects to your current GeoGuessr party link",
+  "private": true
 }
