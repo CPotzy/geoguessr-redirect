@@ -199,8 +199,13 @@
       .then(r => r.json())
       .then(d => {
         const url = d.url || '';
-        const code = url.split('/').filter(Boolean).pop() || url;
-        document.getElementById('join-code').textContent = code;
+        try {
+          const parsed = new URL(url);
+          const code = parsed.pathname.split('/').filter(Boolean).pop() || url;
+          document.getElementById('join-code').textContent = code;
+        } catch(e) {
+          document.getElementById('join-code').textContent = url;
+        }
       })
       .catch(() => {
         document.getElementById('join-code').textContent = '—';
