@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GeoGuessr - Standup Challenge</title>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,600;0,800;0,900;1,800;1,900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -18,12 +19,7 @@
       padding: 24px;
       color: #fff;
     }
-
-    .actions {
-      margin-bottom: 20px;
-      display: flex;
-      gap: 12px;
-    }
+    .actions { margin-bottom: 20px; }
     .download-btn {
       padding: 12px 28px;
       border-radius: 8px;
@@ -38,8 +34,6 @@
     }
     .download-btn:hover { transform: scale(1.03); }
     .hint { color: #666; font-size: 0.75rem; margin-bottom: 20px; }
-
-    /* === THE CARD === */
     .card {
       width: 440px;
       background: linear-gradient(180deg, #1e1145 0%, #261452 40%, #1a1036 100%);
@@ -51,8 +45,6 @@
       border: 1px solid rgba(255,255,255,0.06);
       box-shadow: 0 20px 60px rgba(0,0,0,0.5);
     }
-
-    /* Subtle grid overlay like GeoGuessr */
     .card::before {
       content: '';
       position: absolute;
@@ -63,10 +55,7 @@
       background-size: 40px 40px;
       pointer-events: none;
     }
-
     .card-content { position: relative; z-index: 1; }
-
-    /* Logo */
     .logo {
       display: flex;
       align-items: center;
@@ -74,19 +63,14 @@
       gap: 8px;
       margin-bottom: 6px;
     }
-    .logo-pin {
-      width: 28px;
-      height: 28px;
-    }
+    .logo-pin { width: 28px; height: 28px; }
     .logo-text {
       font-size: 1.4rem;
       font-weight: 900;
       letter-spacing: 1px;
       text-transform: uppercase;
+      color: #fff;
     }
-    .logo-geo { color: #fff; }
-    .logo-guessr { color: #fff; }
-
     .subtitle {
       font-size: 0.85rem;
       font-weight: 600;
@@ -95,8 +79,6 @@
       letter-spacing: 1px;
       text-transform: uppercase;
     }
-
-    /* QR area */
     .qr-container {
       background: #fff;
       border-radius: 16px;
@@ -110,8 +92,6 @@
       width: 220px;
       height: 220px;
     }
-
-    /* Call to action */
     .cta {
       font-size: 1.3rem;
       font-weight: 900;
@@ -120,8 +100,6 @@
       margin-bottom: 16px;
       color: #fff;
     }
-
-    /* Join code */
     .join-code-box {
       display: inline-block;
       background: rgba(108, 180, 238, 0.12);
@@ -145,7 +123,6 @@
       letter-spacing: 2px;
       font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace;
     }
-
     .footer-text {
       font-size: 0.7rem;
       color: rgba(255,255,255,0.4);
@@ -159,7 +136,7 @@
   <div class="actions">
     <button class="download-btn" onclick="downloadCard()">⬇️ Download PNG for Slides</button>
   </div>
-  <p class="hint">Right-click the card to save, or use the button above</p>
+  <p class="hint">Downloads as a transparent-background PNG you can drag into Google Slides</p>
 
   <div class="card" id="qr-card">
     <div class="card-content">
@@ -168,13 +145,11 @@
           <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#e74c3c"/>
           <circle cx="12" cy="9" r="2.5" fill="#fff"/>
         </svg>
-        <span class="logo-text"><span class="logo-geo">GEO</span><span class="logo-guessr">GUESSR</span></span>
+        <span class="logo-text">GEOGUESSR</span>
       </div>
       <p class="subtitle">⚡ Standup Challenge ⚡</p>
 
-      <div class="qr-container">
-        <img id="qr-img" alt="QR Code" />
-      </div>
+      <div class="qr-container" id="qr-target"></div>
 
       <p class="cta">Scan to Play!</p>
 
@@ -189,10 +164,19 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script>
-    // QR code - using a simple img src (no CORS issues)
+    // Generate QR code entirely client-side — no CORS issues
     const siteUrl = 'https://geoguessr-redirect.onrender.com/';
-    document.getElementById('qr-img').src =
-      'https://api.qrserver.com/v1/create-qr-code/?size=220x220&format=png&data=' + encodeURIComponent(siteUrl);
+    const qr = qrcode(0, 'M');
+    qr.addData(siteUrl);
+    qr.make();
+
+    // Create an img from the QR data URI
+    const qrImg = document.createElement('img');
+    qrImg.src = qr.createDataURL(8, 0);
+    qrImg.width = 220;
+    qrImg.height = 220;
+    qrImg.style.display = 'block';
+    document.getElementById('qr-target').appendChild(qrImg);
 
     // Fetch join code
     fetch('redirect.json?t=' + Date.now())
@@ -213,10 +197,8 @@
 
     function downloadCard() {
       html2canvas(document.getElementById('qr-card'), {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#1a1036'
+        scale: 3,
+        backgroundColor: null
       }).then(canvas => {
         const link = document.createElement('a');
         link.download = 'geoguessr-standup-qr.png';
