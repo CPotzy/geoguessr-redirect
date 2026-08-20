@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GeoGuessr - NZ Standup Challenge</title>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,600;0,800;0,900;1,800;1,900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -26,40 +27,12 @@
     }
     .download-btn:hover { transform: scale(1.03); }
     .hint { color: #666; font-size: 0.75rem; margin-bottom: 20px; }
-    .card {
-      width: 440px;
-      background: linear-gradient(180deg, #1e1145 0%, #261452 40%, #1a1036 100%);
-      border-radius: 24px; padding: 40px 36px 36px; text-align: center;
-      position: relative; overflow: hidden;
-      border: 1px solid rgba(255,255,255,0.06);
-      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    #card-canvas {
+      border-radius: 24px;
+      max-width: 440px;
+      width: 100%;
+      height: auto;
     }
-    .card::before {
-      content: ''; position: absolute; inset: 0;
-      background-image:
-        linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
-      background-size: 40px 40px; pointer-events: none;
-    }
-    .card-content { position: relative; z-index: 1; }
-    .logo { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 6px; }
-    .logo-pin { width: 28px; height: 28px; }
-    .logo-text { font-size: 1.4rem; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; color: #fff; }
-    .subtitle { font-size: 0.85rem; font-weight: 600; color: #6cb4ee; margin-bottom: 28px; letter-spacing: 1px; text-transform: uppercase; }
-    .qr-outer {
-      background: #fff; border-radius: 16px; padding: 16px;
-      display: inline-block; margin-bottom: 24px;
-      box-shadow: 0 4px 24px rgba(0,0,0,0.3);
-    }
-    #qr-canvas { display: block; }
-    .cta { font-size: 1.3rem; font-weight: 900; font-style: italic; text-transform: uppercase; margin-bottom: 16px; color: #fff; }
-    .join-code-box {
-      display: inline-block; background: rgba(108,180,238,0.12);
-      border: 2px solid #6cb4ee; border-radius: 10px; padding: 10px 24px; margin-bottom: 16px;
-    }
-    .join-code-label { font-size: 0.6rem; font-weight: 800; color: #6cb4ee; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 4px; }
-    .join-code-value { font-size: 1.2rem; font-weight: 900; color: #fff; letter-spacing: 2px; font-family: 'SF Mono','Fira Code','Courier New',monospace; }
-    .footer-text { font-size: 0.7rem; color: rgba(255,255,255,0.4); font-weight: 600; }
   </style>
 </head>
 <body>
@@ -67,83 +40,168 @@
     <button class="download-btn" onclick="downloadCard()">⬇️ Download PNG for Slides</button>
   </div>
   <p class="hint">Downloads a high-res PNG you can drag into Google Slides</p>
+  <canvas id="card-canvas"></canvas>
 
-  <div class="card" id="qr-card">
-    <div class="card-content">
-      <div class="logo">
-        <svg class="logo-pin" viewBox="0 0 24 24" fill="none">
-          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#e74c3c"/>
-          <circle cx="12" cy="9" r="2.5" fill="#fff"/>
-        </svg>
-        <span class="logo-text">GEOGUESSR</span>
-      </div>
-      <p class="subtitle">⚡ NZ Standup Challenge ⚡</p>
-      <div class="qr-outer">
-        <canvas id="qr-canvas" width="220" height="220"></canvas>
-      </div>
-      <p class="cta">Scan to Play!</p>
-      <div class="join-code-box">
-        <div class="join-code-label">JOIN CODE</div>
-        <div class="join-code-value" id="join-code">loading...</div>
-      </div>
-      
-    </div>
-  </div>
-
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script>
-    // === Draw QR code directly onto the canvas (no img, no CORS) ===
-    // Minimal QR encoder — generates module grid for a URL
-    // Using qrcode-generator inline
-  </script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
-  <script>
-    const siteUrl = 'https://geoguessr-redirect.onrender.com/';
-    const qr = qrcode(0, 'M');
-    qr.addData(siteUrl);
-    qr.make();
-
-    const canvas = document.getElementById('qr-canvas');
+    const SCALE = 3;
+    const W = 440 * SCALE;
+    const H = 620 * SCALE;
+    const canvas = document.getElementById('card-canvas');
+    canvas.width = W;
+    canvas.height = H;
+    canvas.style.width = '440px';
+    canvas.style.height = '620px';
     const ctx = canvas.getContext('2d');
-    const moduleCount = qr.getModuleCount();
-    const cellSize = 220 / moduleCount;
 
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, 220, 220);
-    ctx.fillStyle = '#1a1036';
+    function drawCard(joinCode) {
+      const s = SCALE;
 
-    for (let row = 0; row < moduleCount; row++) {
-      for (let col = 0; col < moduleCount; col++) {
-        if (qr.isDark(row, col)) {
-          ctx.fillRect(col * cellSize, row * cellSize, cellSize + 0.5, cellSize + 0.5);
+      // Background
+      const grad = ctx.createLinearGradient(0, 0, 0, H);
+      grad.addColorStop(0, '#1e1145');
+      grad.addColorStop(0.4, '#261452');
+      grad.addColorStop(1, '#1a1036');
+      roundRect(ctx, 0, 0, W, H, 24 * s, grad);
+
+      // Grid overlay
+      ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+      ctx.lineWidth = 1;
+      for (let x = 0; x < W; x += 40 * s) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+      for (let y = 0; y < H; y += 40 * s) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+
+      // Location pin
+      const pinX = W / 2 - 70 * s, pinY = 32 * s;
+      ctx.save();
+      ctx.translate(pinX, pinY);
+      ctx.scale(s * 1.2, s * 1.2);
+      ctx.fillStyle = '#e74c3c';
+      ctx.beginPath();
+      ctx.arc(12, 9, 7, Math.PI, 0, false);
+      ctx.quadraticCurveTo(19, 16, 12, 22);
+      ctx.quadraticCurveTo(5, 16, 5, 9);
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(12, 9, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      // GEOGUESSR text
+      ctx.fillStyle = '#fff';
+      ctx.font = `900 ${22 * s}px Montserrat, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText('GEOGUESSR', W / 2 + 10 * s, 58 * s);
+
+      // Subtitle
+      ctx.fillStyle = '#6cb4ee';
+      ctx.font = `600 ${11 * s}px Montserrat, sans-serif`;
+      ctx.fillText('⚡  NZ STANDUP CHALLENGE  ⚡', W / 2, 80 * s);
+
+      // QR white background
+      const qrBoxSize = 240 * s;
+      const qrX = (W - qrBoxSize) / 2;
+      const qrY = 100 * s;
+      roundRect(ctx, qrX, qrY, qrBoxSize, qrBoxSize, 16 * s, '#ffffff');
+
+      // QR code
+      const qr = qrcode(0, 'M');
+      qr.addData('https://geoguessr-redirect.onrender.com/');
+      qr.make();
+      const moduleCount = qr.getModuleCount();
+      const qrPadding = 16 * s;
+      const qrDrawSize = qrBoxSize - qrPadding * 2;
+      const cellSize = qrDrawSize / moduleCount;
+
+      ctx.fillStyle = '#1a1036';
+      for (let row = 0; row < moduleCount; row++) {
+        for (let col = 0; col < moduleCount; col++) {
+          if (qr.isDark(row, col)) {
+            ctx.fillRect(
+              qrX + qrPadding + col * cellSize,
+              qrY + qrPadding + row * cellSize,
+              cellSize + 0.5, cellSize + 0.5
+            );
+          }
         }
+      }
+
+      // SCAN TO PLAY!
+      ctx.fillStyle = '#fff';
+      ctx.font = `900 italic ${20 * s}px Montserrat, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText('SCAN TO PLAY!', W / 2, (100 + 240 + 40) * s);
+
+      // Join code box
+      const boxW = 180 * s, boxH = 55 * s;
+      const boxX = (W - boxW) / 2, boxY = (100 + 240 + 52) * s;
+      ctx.strokeStyle = '#6cb4ee';
+      ctx.lineWidth = 2 * s;
+      roundRectStroke(ctx, boxX, boxY, boxW, boxH, 10 * s);
+      // Fill with translucent
+      roundRect(ctx, boxX, boxY, boxW, boxH, 10 * s, 'rgba(108,180,238,0.12)');
+
+      // JOIN CODE label
+      ctx.fillStyle = '#6cb4ee';
+      ctx.font = `800 ${7 * s}px Montserrat, sans-serif`;
+      ctx.fillText('JOIN CODE', W / 2, boxY + 18 * s);
+
+      // Code value
+      ctx.fillStyle = '#fff';
+      ctx.font = `900 ${16 * s}px 'Courier New', monospace`;
+      ctx.fillText(joinCode, W / 2, boxY + 42 * s);
+    }
+
+    function roundRect(ctx, x, y, w, h, r, fill) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + w - r, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+      ctx.lineTo(x + w, y + h - r);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      ctx.lineTo(x + r, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.closePath();
+      if (typeof fill === 'string' || fill instanceof CanvasGradient) {
+        ctx.fillStyle = fill;
+        ctx.fill();
       }
     }
 
-    // Fetch join code
+    function roundRectStroke(ctx, x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + w - r, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+      ctx.lineTo(x + w, y + h - r);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      ctx.lineTo(x + r, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.closePath();
+      ctx.stroke();
+    }
+
+    // Fetch join code, then draw
     fetch('redirect.json?t=' + Date.now())
       .then(r => r.json())
       .then(d => {
+        let code = '—';
         try {
           const parsed = new URL(d.url || '');
-          document.getElementById('join-code').textContent =
-            parsed.pathname.split('/').filter(Boolean).pop() || d.url;
-        } catch(e) {
-          document.getElementById('join-code').textContent = d.url || '—';
-        }
+          code = parsed.pathname.split('/').filter(Boolean).pop() || d.url;
+        } catch(e) { code = d.url || '—'; }
+        drawCard(code);
       })
-      .catch(() => { document.getElementById('join-code').textContent = '—'; });
+      .catch(() => drawCard('—'));
 
     function downloadCard() {
-      html2canvas(document.getElementById('qr-card'), {
-        scale: 3,
-        backgroundColor: null
-      }).then(c => {
-        const a = document.createElement('a');
-        a.download = 'geoguessr-standup-qr.png';
-        a.href = c.toDataURL('image/png');
-        a.click();
-      });
+      const a = document.createElement('a');
+      a.download = 'geoguessr-standup-qr.png';
+      a.href = canvas.toDataURL('image/png');
+      a.click();
     }
   </script>
 </body>
